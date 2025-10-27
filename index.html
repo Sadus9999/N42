@@ -1,303 +1,280 @@
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Netflix-style Slider</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{
+      --yellow:#FAC232;
+      --dot-inactive:#D9D9D9;
+      --text:#000;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:#fff}
 
-<div class="slider-wrapper">
-  <div class="slider-header">
-    <h2>Case Studies</h2>
-  </div>
+    .slider-wrapper{
+      position:relative;
+      width:100%;
+      padding:24px 0 16px;
+      overflow:visible;
+    }
 
-  <!-- Arrow buttons -->
-  <button class="nav-btn prev">‹</button>
-  <button class="nav-btn next">›</button>
+    /* NAV BUTTONS (fixed spacing from viewport edges) */
+    .nav-btn{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:54px;height:54px;
+      border:none;border-radius:50%;
+      background:var(--yellow);
+      cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      z-index:5;
+      box-shadow:0 6px 16px rgba(0,0,0,.15);
+    }
+    .nav-btn i{ width:24px;height:24px; stroke-width:2.5; color:#000; }
+    .nav-btn.prev{ left:42px; }
+    .nav-btn.next{ right:42px; }
 
-  <div class="slider" id="slider">
-    <!-- CARD -->
-    <div class="card">
-      <div class="chips">
-        <span>Packaging</span><span>Design</span>
-      </div>
-      <img src="https://raw.githubusercontent.com/Sadus9999/N42/refs/heads/main/Case1.jpg" alt="">
-      <div class="apla">
-        <div class="apla-content">
-          <h3>OrlaPack</h3>
-          <a href="#" class="apla-btn">→</a>
+    /* EDGE FADES */
+    .fade-left,.fade-right{
+      position:absolute;top:0;bottom:0;width:80px;z-index:4;pointer-events:none;
+    }
+    .fade-left{left:0;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,0) 100%)}
+    .fade-right{right:0;background:linear-gradient(270deg,#fff 0%,rgba(255,255,255,0) 100%)}
+
+    /* SLIDER STRIP */
+    .slider{
+      position:relative;
+      display:flex;gap:20px;
+      overflow-x:auto;scroll-behavior:smooth;scroll-snap-type:x mandatory;
+      padding:0 122px; /* 42 (btn) + 80 (fade) po każdej stronie */
+      -ms-overflow-style:none;scrollbar-width:none;
+    }
+    .slider::-webkit-scrollbar{display:none}
+
+    /* CARD = LINK */
+    .card{
+      position:relative;display:block;scroll-snap-align:start;
+      flex:0 0 360px;width:360px;height:476px;border-radius:16px;overflow:hidden;
+      text-decoration:none;color:inherit;user-select:none; -webkit-tap-highlight-color:transparent;
+      box-shadow:0 1px 8px rgba(0,0,0,.06);
+      background:#000; /* pod obraz */
+    }
+    .card img{
+      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    }
+
+    /* CHIPS */
+    .chips{
+      position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:2;transition:transform .3s ease;
+    }
+    .chips span{
+      font-size:12px;line-height:1;
+      color:#000;background:var(--yellow);
+      border-radius:999px;padding:4px 10px;transition:all .3s ease;
+    }
+
+    /* APLA (bottom bar) */
+    .apla{
+      position:absolute;left:0;right:0;bottom:-97px;height:97px;
+      background:rgba(250,194,50,.56);
+      backdrop-filter:blur(8px);
+      display:flex;align-items:center; /* równy top/bottom */
+      transition:bottom .35s ease;
+    }
+    .apla-content{
+      width:100%;height:100%;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 16px; /* równe top/bottom przez align:center */
+      gap:12px;
+    }
+    .apla h3{
+      font-size:24px;font-weight:700;margin:0;color:var(--text);line-height:1.2;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }
+    .apla-btn{
+      width:36px;height:36px;border-radius:50%;background:#fff;flex:0 0 36px;
+      display:flex;align-items:center;justify-content:center;text-decoration:none;
+    }
+    .apla-btn i{ width:20px;height:20px;stroke-width:2.5;color:#000; }
+
+    /* HOVER states */
+    .card:hover .apla{ bottom:0; }
+    .card:hover .chips span{ font-size:16px;padding:6px 14px; }
+
+    /* DOTS */
+    .dots{ display:flex;justify-content:center;gap:10px;margin-top:12px; }
+    .dots span{ width:10px;height:10px;border-radius:50%;background:var(--dot-inactive);transition:background .25s ease; }
+    .dots .active{ background:var(--yellow); }
+
+    /* Touch-friendly target on mobile */
+    @media (hover:none){
+      .card:hover .apla{ bottom:-97px; } /* hover off on touch, apla pokażemy tapem/scroll-snap */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="slider-wrapper">
+    <!-- NAV -->
+    <button class="nav-btn prev" aria-label="Poprzednie">
+      <i data-lucide="chevron-left"></i>
+    </button>
+    <button class="nav-btn next" aria-label="Następne">
+      <i data-lucide="chevron-right"></i>
+    </button>
+
+    <!-- FADES -->
+    <div class="fade-left"></div>
+    <div class="fade-right"></div>
+
+    <!-- STRIP -->
+    <div class="slider" id="slider" aria-label="Case studies slider">
+      <!-- CARD 1 -->
+      <a class="card" href="#orlapack" aria-label="OrlaPack case study">
+        <div class="chips"><span>Packaging</span><span>Design</span></div>
+        <img src="https://raw.githubusercontent.com/Sadus9999/N42/refs/heads/main/Case1.jpg" alt="Miniatura OrlaPack" />
+        <div class="apla">
+          <div class="apla-content">
+            <h3>OrlaPack – systemy pakowania</h3>
+            <span class="apla-btn" aria-hidden="true"><i data-lucide="chevron-right"></i></span>
+          </div>
         </div>
-      </div>
-    </div>
+      </a>
 
-    <div class="card">
-      <div class="chips">
-        <span>Branding</span><span>Luxury</span>
-      </div>
-      <img src="https://placehold.co/360x476" alt="">
-      <div class="apla">
-        <div class="apla-content">
-          <h3>KLINK</h3>
-          <a href="#" class="apla-btn">→</a>
+      <!-- CARD 2 -->
+      <a class="card" href="#klink" aria-label="KLINK case study">
+        <div class="chips"><span>Branding</span><span>Luxury</span></div>
+        <img src="https://placehold.co/720x952" alt="Miniatura KLINK" />
+        <div class="apla">
+          <div class="apla-content">
+            <h3>KLINK – kamień naturalny premium</h3>
+            <span class="apla-btn" aria-hidden="true"><i data-lucide="chevron-right"></i></span>
+          </div>
         </div>
-      </div>
-    </div>
+      </a>
 
-    <div class="card">
-      <div class="chips">
-        <span>Digital</span><span>UX/UI</span>
-      </div>
-      <img src="https://placehold.co/360x476" alt="">
-      <div class="apla">
-        <div class="apla-content">
-          <h3>Energologiczni</h3>
-          <a href="#" class="apla-btn">→</a>
+      <!-- CARD 3 -->
+      <a class="card" href="#energologiczni" aria-label="Energologiczni case study">
+        <div class="chips"><span>Digital</span><span>UX/UI</span></div>
+        <img src="https://placehold.co/720x952" alt="Miniatura Energologiczni" />
+        <div class="apla">
+          <div class="apla-content">
+            <h3>Energologiczni – e-commerce + automaty</h3>
+            <span class="apla-btn" aria-hidden="true"><i data-lucide="chevron-right"></i></span>
+          </div>
         </div>
-      </div>
+      </a>
+
+      <!-- CARD 4 -->
+      <a class="card" href="#tsinvest" aria-label="TS Invest case study">
+        <div class="chips"><span>Real Estate</span><span>Luxury</span></div>
+        <img src="https://placehold.co/720x952" alt="Miniatura TS Invest" />
+        <div class="apla">
+          <div class="apla-content">
+            <h3>TS Invest – nieruchomości premium</h3>
+            <span class="apla-btn" aria-hidden="true"><i data-lucide="chevron-right"></i></span>
+          </div>
+        </div>
+      </a>
+
+      <!-- CARD 5 -->
+      <a class="card" href="#viking" aria-label="Viking Beard Oil case study">
+        <div class="chips"><span>FMCG</span><span>Packaging</span></div>
+        <img src="https://placehold.co/720x952" alt="Miniatura Viking Beard Oil" />
+        <div class="apla">
+          <div class="apla-content">
+            <h3>Viking Beard Oil – linia Ymir/Fenrir</h3>
+            <span class="apla-btn" aria-hidden="true"><i data-lucide="chevron-right"></i></span>
+          </div>
+        </div>
+      </a>
     </div>
-<div class="card">
-  <div class="chips">
-    <span>Automation</span><span>Industry</span>
-  </div>
-  <img src="https://placehold.co/360x476" alt="Projekt 4">
-  <div class="apla">
-    <div class="apla-content">
-      <h3>Orla Technologies</h3>
-      <a href="#" class="apla-btn">→</a>
-    </div>
-  </div>
-</div>
-<div class="card">
-  <div class="chips">
-    <span>Automation</span><span>Industry</span>
-  </div>
-  <img src="https://placehold.co/360x476" alt="Projekt 4">
-  <div class="apla">
-    <div class="apla-content">
-      <h3>Orla Technologies</h3>
-      <a href="#" class="apla-btn">→</a>
-    </div>
-  </div>
-</div>
-<div class="card">
-  <div class="chips">
-    <span>Automation</span><span>Industry</span>
-  </div>
-  <img src="https://placehold.co/360x476" alt="Projekt 4">
-  <div class="apla">
-    <div class="apla-content">
-      <h3>Orla Technologies</h3>
-      <a href="#" class="apla-btn">→</a>
-    </div>
-  </div>
-</div>
-<div class="card">
-  <div class="chips">
-    <span>Automation</span><span>Industry</span>
-  </div>
-  <img src="https://placehold.co/360x476" alt="Projekt 4">
-  <div class="apla">
-    <div class="apla-content">
-      <h3>Orla Technologies</h3>
-      <a href="#" class="apla-btn">→</a>
-    </div>
-  </div>
-</div>
-<div class="card">
-  <div class="chips">
-    <span>Automation</span><span>Industry</span>
-  </div>
-  <img src="https://placehold.co/360x476" alt="Projekt 4">
-  <div class="apla">
-    <div class="apla-content">
-      <h3>Orla Technologies</h3>
-      <a href="#" class="apla-btn">→</a>
-    </div>
-  </div>
-</div>
 
-
-
-
+    <!-- DOTS -->
+    <div class="dots" id="dots" aria-hidden="true"></div>
   </div>
 
-  <!-- Dot indicator -->
-  <div class="dots" id="dots"></div>
-</div>
+  <script>
+    // Render Lucide icons
+    lucide.createIcons();
 
-<style>
-:root { --yellow: #FAC232; }
+    const slider = document.getElementById("slider");
+    const prevBtn = document.querySelector(".nav-btn.prev");
+    const nextBtn = document.querySelector(".nav-btn.next");
+    const dotsContainer = document.getElementById("dots");
+    const cards = Array.from(document.querySelectorAll(".card"));
+    const gap = 20; // CSS gap
+    const cardWidth = 360 + gap;
 
-.slider-wrapper {
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-  font-family: 'Poppins', sans-serif;
-}
+    // Build dots (per card)
+    cards.forEach((_, i) => {
+      const dot = document.createElement("span");
+      if (i === 0) dot.classList.add("active");
+      dotsContainer.appendChild(dot);
+    });
+    const dots = Array.from(dotsContainer.querySelectorAll("span"));
 
-/* Slider */
-.slider {
-  display: flex;
-  gap: 1.25rem;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-}
-.slider::-webkit-scrollbar { display: none; }
+    function maxIndex(){ return Math.max(0, cards.length - 1); }
 
-.card {
-  position: relative;
-  flex: 0 0 360px;
-  height: 476px;
-  border-radius: 16px;
-  overflow: hidden;
-  cursor: pointer;
-}
-.card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+    function currentIndex(){
+      return Math.round(slider.scrollLeft / cardWidth);
+    }
 
-/* Chips */
-.chips {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  display: flex;
-  gap: 6px;
-  transition: all .3s ease;
-  z-index: 2;
-}
-.chips span {
-  font-size: 12px;
-  background: var(--yellow);
-  color: #000;
-  border-radius: 999px;
-  padding: 4px 10px;
-  transition: all .3s ease;
-}
+    function updateDots(idx){
+      dots.forEach(d => d.classList.remove("active"));
+      if (dots[idx]) dots[idx].classList.add("active");
+      // Edge fades visibility
+      const maxScroll = slider.scrollWidth - slider.clientWidth;
+      document.querySelector(".fade-left").style.opacity = slider.scrollLeft > 2 ? 1 : 0;
+      document.querySelector(".fade-right").style.opacity = slider.scrollLeft < (maxScroll - 2) ? 1 : 0;
+    }
 
-/* Apla */
-.apla {
-  position: absolute;
-  bottom: -97px;
-  left: 0;
-  width: 100%;
-  height: 97px;
-  background: rgba(250,194,50,.56);
-  backdrop-filter: blur(8px);
-  transition: all .4s ease;
-  display: flex;
-  align-items: flex-end;
-}
-.apla-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  width: 100%;
-  padding: 40px 16px;
-}
-.apla h3 {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-}
-.apla-btn {
-  width: 36px;
-  height: 36px;
-  background: #fff;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-decoration: none;
-  color: #000;
-  font-size: 20px;
-}
+    function slideTo(idx){
+      const clamped = Math.max(0, Math.min(idx, maxIndex()));
+      slider.scrollTo({ left: clamped * cardWidth, behavior: "smooth" });
+      updateDots(clamped);
+    }
 
-/* Hover animation */
-.card:hover .apla { bottom: 0; }
-.card:hover .chips span {
-  font-size: 16px;
-  padding: 6px 14px;
-}
+    prevBtn.addEventListener("click", () => slideTo(currentIndex() - 1));
+    nextBtn.addEventListener("click", () => slideTo(currentIndex() + 1));
 
-/* Navigation Buttons */
-.nav-btn {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 54px;
-  height: 54px;
-  background: var(--yellow);
-  color: #000;
-  border-radius: 50%;
-  font-size: 32px;
-  border: none;
-  cursor: pointer;
-  z-index: 5;
-}
-.prev { left: 42px; }
-.next { right: 42px; }
+    // Snap on scroll end
+    let scrollTimeout;
+    slider.addEventListener("scroll", () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => slideTo(currentIndex()), 60);
+      updateDots(currentIndex());
+    });
 
-/* Dots */
-.dots {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 14px;
-}
-.dots span {
-  width: 10px;
-  height: 10px;
-  background: #D9D9D9;
-  border-radius: 50%;
-  transition: background .3s ease;
-}
-.dots .active {
-  background: var(--yellow);
-}
-</style>
+    // DRAG / SWIPE (mouse + touch)
+    let isDown = false, startX = 0, startScroll = 0;
+    const start = (x) => { isDown = true; startX = x; startScroll = slider.scrollLeft; };
+    const move  = (x) => { if(!isDown) return; const dx = x - startX; slider.scrollLeft = startScroll - dx; };
+    const end   = () => { if(!isDown) return; isDown = false; slideTo(currentIndex()); };
 
-<script>
-const slider = document.getElementById("slider");
-const dotsContainer = document.getElementById("dots");
-const prev = document.querySelector(".prev");
-const next = document.querySelector(".next");
+    slider.addEventListener("pointerdown", e => { slider.setPointerCapture(e.pointerId); start(e.clientX); });
+    slider.addEventListener("pointermove",  e => move(e.clientX));
+    slider.addEventListener("pointerup",    end);
+    slider.addEventListener("pointercancel",end);
+    slider.addEventListener("mouseleave",   end);
 
-const cards = document.querySelectorAll(".card");
-const cardWidth = 360 + 20; // karta + gap (~380)
+    // Prevent link click while dragging
+    let dragDistance = 0;
+    slider.addEventListener("pointerdown", e => { dragDistance = 0; });
+    slider.addEventListener("pointermove", e => { if(isDown) dragDistance += Math.abs(e.movementX); });
+    slider.addEventListener("click", e => {
+      if (dragDistance > 6) e.preventDefault();
+    });
 
-let currentIndex = 0;
-
-// Create dots
-cards.forEach((_, i) => {
-  const dot = document.createElement("span");
-  if(i === 0) dot.classList.add("active");
-  dotsContainer.appendChild(dot);
-});
-const dots = document.querySelectorAll(".dots span");
-
-function updateDots(index) {
-  dots.forEach(dot => dot.classList.remove("active"));
-  dots[index].classList.add("active");
-}
-
-function slideTo(index) {
-  slider.scrollTo({ left: index * cardWidth, behavior: "smooth" });
-  currentIndex = index;
-  updateDots(index);
-}
-
-next.onclick = () => {
-  currentIndex = Math.min(currentIndex + 1, cards.length - 1);
-  slideTo(currentIndex);
-};
-
-prev.onclick = () => {
-  currentIndex = Math.max(currentIndex - 1, 0);
-  slideTo(currentIndex);
-};
-
-slider.addEventListener("scroll", () => {
-  const index = Math.round(slider.scrollLeft / cardWidth);
-  currentIndex = index;
-  updateDots(index);
-});
-</script>
-
+    // Init fades (hidden on edges initially)
+    updateDots(0);
+    document.querySelector(".fade-left").style.transition = "opacity .25s ease";
+    document.querySelector(".fade-right").style.transition = "opacity .25s ease";
+  </script>
+</body>
+</html>
